@@ -11,78 +11,100 @@
 		.sort((a, b) => b.rarity - a.rarity);
 
 	let operatorId: string | null = null;
-	$: op = (operatorId ? characterTable[operatorId as keyof typeof characterTable] : {}) as Partial<
-		typeof characterTable['char_002_amiya']
-	>;
-	$: rarity = (op?.rarity ?? 0) + 1;
-	$: maxElite = (() => {
-		if (rarity >= 4) {
-			return 2;
-		} else if (rarity > 2) {
-			return 1;
-		}
-		return 0;
-	})();
 
-	$: elite = maxElite;
-
-	$: maxLevel = (() => {
-		if (elite === 2) {
-			switch (rarity) {
-				case 6:
-					return 90;
-				case 5:
-					return 80;
-				case 4:
-					return 70;
-			}
-		} else if (elite === 1) {
-			switch (rarity) {
-				case 6:
-					return 80;
-				case 5:
-					return 70;
-				case 4:
-					return 60;
-				case 3:
-					return 55;
-			}
-		}
-		// elite 0
-		switch (rarity) {
-			case 6:
-			case 5:
-				return 50;
-			case 4:
-				return 45;
-			case 3:
-				return 40;
-		}
-		return 30;
-	})();
-
-	$: level = maxLevel;
-
-	$: skills = op?.skills?.map((sk) => sk.skillId) ?? [];
-	$: moduleIds = (
-		uniequipTable.charEquip[operatorId as keyof typeof uniequipTable.charEquip] ?? []
-	).filter((moduleId) => !moduleId.startsWith('uniequip_001'));
-
+	let op: any = null;
+	let rarity = 0;
+	let maxElite = 0;
+	let elite: number | null = 0;
+	let maxLevel = 30;
+	let level: number | null = 30;
 	let potential: number | null = 1;
 	let trust: number | null = 100;
-	$: skillId = skills.at(-1);
-	$: skillLevel = rarity >= 4 ? 10 : 7;
-	$: moduleId = moduleIds[0];
-	$: maxModuleLevel =
-		battleEquipTable[moduleId as keyof typeof battleEquipTable]?.phases?.length ?? 0;
-	$: moduleLevel = maxModuleLevel;
+	let skillIds: string[] = [];
+	let skillId: string | null;
+	let skillLevel: number | null = 7;
+	let moduleIds: string[] = [];
+	let moduleId: string | null;
+	let maxModuleLevel = 1;
+	let moduleLevel: number | null = 1;
+	let operatorDpsOptionsTagList: Array<keyof typeof dpsOptions.tags> = [];
 
-	$: operatorDpsOptionsTagList = (
-		operatorId ? dpsOptions.char[operatorId as keyof typeof dpsOptions.char] : []
-	) as Array<keyof typeof dpsOptions.tags>;
 	let operatorDpsOptions: Partial<Record<keyof typeof dpsOptions.tags, boolean>> = {
 		buff: true
 	};
+
+	$: handleOperatorIdChanged(operatorId);
+
+	function handleOperatorIdChanged(operatorId: string | null) {
+		op = operatorId ? (characterTable[operatorId as keyof typeof characterTable] as any) : null;
+		if (!op) {
+			return;
+		}
+
+		rarity = (op.rarity ?? 0) + 1;
+
+		skillLevel = rarity >= 4 ? 10 : 7;
+
+		if (rarity >= 4) {
+			maxElite = 2;
+		} else if (rarity > 2) {
+			maxElite = 1;
+		} else {
+			maxElite = 0;
+		}
+		elite = maxElite;
+
+		maxLevel = (() => {
+			if (elite === 2) {
+				switch (rarity) {
+					case 6:
+						return 90;
+					case 5:
+						return 80;
+					case 4:
+						return 70;
+				}
+			} else if (elite === 1) {
+				switch (rarity) {
+					case 6:
+						return 80;
+					case 5:
+						return 70;
+					case 4:
+						return 60;
+					case 3:
+						return 55;
+				}
+			}
+			// elite 0
+			switch (rarity) {
+				case 6:
+				case 5:
+					return 50;
+				case 4:
+					return 45;
+				case 3:
+					return 40;
+			}
+			return 30;
+		})();
+
+		level = maxLevel;
+
+		skillIds = op.skills?.map((sk: any) => sk.skillId) ?? [];
+		skillId = skillIds.at(-1) ?? null;
+
+		moduleIds = (
+			uniequipTable.charEquip[operatorId as keyof typeof uniequipTable.charEquip] ?? []
+		).filter((moduleId) => !moduleId.startsWith('uniequip_001'));
+		moduleId = moduleIds[0] ?? null;
+		maxModuleLevel =
+			battleEquipTable[moduleId as keyof typeof battleEquipTable]?.phases?.length ?? 0;
+		moduleLevel = maxModuleLevel;
+		operatorDpsOptionsTagList = dpsOptions.char[
+			operatorId as keyof typeof dpsOptions.char
+		] as Array<keyof typeof dpsOptions.tags>;
+	}
 
 	let enemyConfig: Exclude<Parameters<typeof calculateDps>[1], undefined> = {
 		def: 0,
@@ -104,13 +126,13 @@
 				{
 					charId: operatorId,
 					phase: elite,
-					level,
+					level: level ?? 1,
 					potentialRank: (potential ?? 1) - 1,
 					favor: trust ?? 100,
 					skillId: skillId ?? '',
-					skillLevel: skillLevel - 1,
-					equipId: moduleId,
-					equipLevel: moduleLevel,
+					skillLevel: (skillLevel ?? 1) - 1,
+					equipId: moduleId ?? '',
+					equipLevel: moduleLevel ?? 1,
 					options: operatorDpsOptions
 				},
 				enemyConfig,
@@ -150,11 +172,11 @@
 					<input bind:value={trust} type="number" min="0" max="200" />
 				</label>
 
-				{#if skills.length > 0}
+				{#if skillIds.length > 0}
 					<label>
 						Skill
 						<select bind:value={skillId}>
-							{#each skills as skillId}
+							{#each skillIds as skillId, i}
 								<option value={skillId}>{skillId}</option>
 							{/each}
 						</select>
