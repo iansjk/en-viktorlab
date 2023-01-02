@@ -1,6 +1,7 @@
 {
 	"name": "enviktor",
 	"version": "0.0.1",
+	"type": "module",
 	"scripts": {
 		"start": "vite dev",
 		"dev": "vite dev",
@@ -29,6 +30,5 @@
 		"tslib": "^2.4.1",
 		"typescript": "^4.9.3",
 		"vite": "^4.0.0"
-	},
-	"type": "module"
+	}
 }
