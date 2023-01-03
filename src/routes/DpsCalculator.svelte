@@ -27,11 +27,9 @@
 	let moduleId: string | null;
 	let maxModuleLevel = 1;
 	let moduleLevel: number | null = 1;
+	let buffsEnabled = true;
 	let operatorDpsOptionsTagList: Array<keyof typeof dpsOptions.tags> = [];
-
-	let operatorDpsOptions: Partial<Record<keyof typeof dpsOptions.tags, boolean>> = {
-		buff: true
-	};
+	let operatorDpsOptions: Partial<Record<keyof typeof dpsOptions.tags, boolean>>;
 
 	$: handleOperatorIdChanged(operatorId);
 
@@ -101,9 +99,17 @@
 		maxModuleLevel =
 			battleEquipTable[moduleId as keyof typeof battleEquipTable]?.phases?.length ?? 0;
 		moduleLevel = maxModuleLevel;
+
 		operatorDpsOptionsTagList = dpsOptions.char[
 			operatorId as keyof typeof dpsOptions.char
 		] as Array<keyof typeof dpsOptions.tags>;
+
+		operatorDpsOptions = operatorDpsOptionsTagList.reduce<
+			Partial<Record<keyof typeof dpsOptions.tags, boolean>>
+		>((acc, tag) => {
+			acc[tag] = !dpsOptions.tags[tag].off;
+			return acc;
+		}, {});
 	}
 
 	let enemyConfig: Exclude<Parameters<typeof calculateDps>[1], undefined> = {
@@ -133,7 +139,10 @@
 					skillLevel: (skillLevel ?? 1) - 1,
 					equipId: moduleId ?? '',
 					equipLevel: moduleLevel ?? 1,
-					options: operatorDpsOptions
+					options: {
+						...operatorDpsOptions,
+						buff: buffsEnabled
+					}
 				},
 				enemyConfig,
 				raidBuff
@@ -242,7 +251,7 @@
 			<h2>Buffs</h2>
 			<label>
 				Buffs enabled?
-				<input type="checkbox" bind:checked={operatorDpsOptions.buff} />
+				<input type="checkbox" bind:checked={buffsEnabled} />
 			</label>
 
 			<label>
